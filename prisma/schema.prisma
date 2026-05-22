@@ -1,3 +1,12 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
 model User {
   id    String @id @default(cuid()) // cuid - это генератор уникальных идентификаторов, который создает строку из 25 символов, начинающуюся с "c" и состоящую из букв и цифр. Он гарантирует уникальность идентификаторов в рамках одной базы данных.
   email String @unique // уникальный индекс для поля email, который гарантирует, что в базе данных не будет двух пользователей с одинаковым email
