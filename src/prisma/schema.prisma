@@ -1,0 +1,44 @@
+model User {
+  id    String @id @default(cuid()) // cuid - это генератор уникальных идентификаторов, который создает строку из 25 символов, начинающуюся с "c" и состоящую из букв и цифр. Он гарантирует уникальность идентификаторов в рамках одной базы данных.
+  email String @unique // уникальный индекс для поля email, который гарантирует, что в базе данных не будет двух пользователей с одинаковым email
+
+  username      String   @unique
+  passwordHash  String
+  emailVerified Boolean  @default(false)
+  newsletter    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  decks    Deck[]
+  sessions Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id]) // связь между сессией и пользователем, которая указывает, что каждая сессия принадлежит одному пользователю
+}
+
+// Следующий этап:
+model Deck {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+  cards       Card[]
+}
+
+model Card {
+  id        String   @id @default(cuid())
+  front     String
+  back      String
+  deckId    String
+  deck      Deck     @relation(fields: [deckId], references: [id])
+  createdAt DateTime @default(now())
+}
