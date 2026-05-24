@@ -13,8 +13,10 @@
 		"target": "ES2023",
 		"sourceMap": true,
 		"outDir": "./dist",
+		"rootDir": "./src",
 		"baseUrl": "./",
-		"path": {
+		"ignoreDeprecations": "6.0",
+		"paths": {
 			"@/*": ["src/*"],
 			"prisma/__generated__/": ["prisma/__generated__/*"],
 			"prisma/__generated__/*": ["prisma/__generated__/*"]
