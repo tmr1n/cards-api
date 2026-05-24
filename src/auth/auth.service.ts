@@ -41,7 +41,8 @@ export class AuthService {
 			email: dto.email,
 			username: dto.username,
 			passwordHash,
-			newsletter: dto.mailing_enabled ?? false
+			newsletter: dto.mailing_enabled ?? false,
+			emailVerified: true
 		})
 
 		return { job_id: crypto.randomUUID() } // Placeholder for async job ID to send welcome email, etc.
