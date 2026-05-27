@@ -12,7 +12,8 @@ model User {
   email String @unique // уникальный индекс для поля email, который гарантирует, что в базе данных не будет двух пользователей с одинаковым email
 
   username      String   @unique
-  passwordHash  String
+  passwordHash  String?
+  googleId      String?  @unique
   emailVerified Boolean  @default(false)
   newsletter    Boolean  @default(false)
   createdAt     DateTime @default(now())

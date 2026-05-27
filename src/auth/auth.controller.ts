@@ -1,11 +1,14 @@
 import {
 	Body,
 	Controller,
+	Get,
 	Post,
 	Req,
 	Res,
-	UnauthorizedException
+	UnauthorizedException,
+	UseGuards
 } from '@nestjs/common'
+import { AuthGuard } from '@nestjs/passport'
 import type { Request, Response } from 'express'
 
 import { AuthService } from './auth.service'
@@ -56,5 +59,20 @@ export class AuthController {
 		if (!token) throw new UnauthorizedException('No refresh token')
 		const data = await this.auth.refresh(token)
 		return { success: true, message: 'Token refreshed', data }
+	}
+
+	// В AuthController
+	@Get('google')
+	@UseGuards(AuthGuard('google'))
+	googleAuth() {}
+
+	@Get('google/callback')
+	@UseGuards(AuthGuard('google'))
+	async googleCallback(@Req() req: Request, @Res() res: Response) {
+		const tokens = await this.auth.loginUser(req.user as any)
+		res.cookie(REFRESH_COOKIE, tokens.refreshToken, COOKIE_OPTIONS)
+		res.redirect(
+			`${process.env.FRONTEND_URL}/auth/callback?token=${tokens.access_token}`
+		)
 	}
 }

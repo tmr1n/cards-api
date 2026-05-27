@@ -17,7 +17,7 @@ export class UsersService {
 	create(data: {
 		email: string
 		username: string
-		passwordHash: string
+		passwordHash?: string
 		newsletter: boolean
 		emailVerified: boolean
 	}) {

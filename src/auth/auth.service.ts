@@ -50,7 +50,7 @@ export class AuthService {
 
 	async login(dto: LoginDto) {
 		const user = await this.users.findByEmail(dto.email)
-		if (!user) throw new UnauthorizedException('Invalid credentials')
+		if (!user || !user.passwordHash) throw new UnauthorizedException('Invalid credentials')
 
 		const match = await bcrypt.compare(dto.password, user.passwordHash)
 		if (!match) throw new UnauthorizedException('Invalid credentials')
@@ -91,5 +91,57 @@ export class AuthService {
 			email: session.user.email
 		})
 		return { access_token: accessToken }
+	}
+
+	async loginUser(user: { id: string; email: string; emailVerified: boolean }) {
+		const accessToken = this.jwt.sign({ sub: user.id, email: user.email })
+		const refreshToken = crypto.randomUUID()
+		await this.prisma.session.create({
+			data: {
+				userId: user.id,
+				refreshToken,
+				expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+			}
+		})
+		return { access_token: accessToken, refreshToken }
+	}
+
+	async findOrCreateGoogleUser(data: {
+		googleId: string
+		email: string
+		username: string
+	}) {
+		let user = await this.prisma.user.findUnique({
+			where: { googleId: data.googleId }
+		})
+
+		if (!user) {
+			user = await this.prisma.user.findUnique({ where: { email: data.email } })
+			if (user) {
+				user = await this.prisma.user.update({
+					where: { id: user.id },
+					data: { googleId: data.googleId, emailVerified: true }
+				})
+			} else {
+				user = await this.prisma.user.create({
+					data: {
+						googleId: data.googleId,
+						email: data.email,
+						username: await this.resolveUniqueUsername(data.username),
+						emailVerified: true,
+						newsletter: false
+					}
+				})
+			}
+		}
+
+		return user
+	}
+
+	private async resolveUniqueUsername(base: string): Promise<string> {
+		const sanitized = base.replace(/\s+/g, '_').slice(0, 20)
+		const existing = await this.prisma.user.findUnique({ where: { username: sanitized } })
+		if (!existing) return sanitized
+		return `${sanitized}_${Math.random().toString(36).slice(2, 7)}`
 	}
 }
