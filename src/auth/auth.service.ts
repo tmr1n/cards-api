@@ -106,6 +106,18 @@ export class AuthService {
 		return { access_token: accessToken, refreshToken }
 	}
 
+	async getProfile(userId: string) {
+		const user = await this.users.findById(userId)
+		if (!user) throw new UnauthorizedException('User not found')
+		return {
+			id: user.id,
+			email: user.email,
+			username: user.username,
+			createdAt: user.createdAt,
+		}
+	}
+
+
 	async findOrCreateGoogleUser(data: {
 		googleId: string
 		email: string

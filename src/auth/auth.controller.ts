@@ -61,6 +61,14 @@ export class AuthController {
 		return { success: true, message: 'Token refreshed', data }
 	}
 
+	@Get('profile')
+	@UseGuards(AuthGuard('jwt'))
+	async getProfile(@Req() req: Request) {
+		const user = req.user as { id: string; email: string }
+		const data = await this.auth.getProfile(user.id)
+		return { success: true, message: 'OK', data }
+	}
+
 	// В AuthController
 	@Get('google')
 	@UseGuards(AuthGuard('google'))
