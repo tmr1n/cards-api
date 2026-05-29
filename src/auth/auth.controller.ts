@@ -1,6 +1,7 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	Patch,
 	Post,
@@ -100,5 +101,13 @@ export class AuthController {
 		const user = req.user as { id: string; email: string }
 		await this.auth.updatePassword(user.id, dto)
 		return { success: true, message: 'Password updated', data: null }
+	}
+
+	@Delete('profile')
+	@UseGuards(AuthGuard('jwt'))
+	async deleteAccount(@Req() req: Request) {
+		const user = req.user as { id: string; email: string }
+		await this.auth.deleteAccount(user.id)
+		return { success: true, message: 'Account deleted', data: null }
 	}
 }

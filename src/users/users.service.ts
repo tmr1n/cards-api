@@ -10,6 +10,10 @@ export class UsersService {
 		return this.prisma.user.findUnique({ where: { email } })
 	}
 
+	findByUsername(username: string) {
+		return this.prisma.user.findUnique({ where: { username } })
+	}
+
 	findById(id: string) {
 		return this.prisma.user.findUnique({ where: { id } })
 	}
@@ -26,6 +30,15 @@ export class UsersService {
 
 	updateUsername(id: string, username: string) {
 		return this.prisma.user.update({ where: { id }, data: { username } })
+	}
+
+	async deleteById(id: string) {
+		await this.prisma.$transaction([
+			this.prisma.card.deleteMany({ where: { deck: { userId: id } } }),
+			this.prisma.deck.deleteMany({ where: { userId: id } }),
+			this.prisma.session.deleteMany({ where: { userId: id } }),
+			this.prisma.user.delete({ where: { id } })
+		])
 	}
 }
 

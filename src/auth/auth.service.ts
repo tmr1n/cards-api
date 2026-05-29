@@ -51,7 +51,9 @@ export class AuthService {
 	}
 
 	async login(dto: LoginDto) {
-		const user = await this.users.findByEmail(dto.email)
+		const user =
+			(await this.users.findByEmail(dto.email)) ??
+			(await this.users.findByUsername(dto.email))
 		if (!user || !user.passwordHash)
 			throw new UnauthorizedException('Invalid credentials')
 
@@ -171,6 +173,10 @@ export class AuthService {
 			})
 		}
 		return this.users.updateUsername(userId, dto.username)
+	}
+
+	async deleteAccount(userId: string) {
+		await this.users.deleteById(userId)
 	}
 
 	async updatePassword(userId: string, dto: UpdatePasswordDto) {
