@@ -32,6 +32,10 @@ export class UsersService {
 		return this.prisma.user.update({ where: { id }, data: { username } })
 	}
 
+	updateAvatar(id: string, avatarUrl: string) {
+		return this.prisma.user.update({ where: { id }, data: { avatarUrl } })
+	}
+
 	async deleteById(id: string) {
 		await this.prisma.$transaction([
 			this.prisma.card.deleteMany({ where: { deck: { userId: id } } }),

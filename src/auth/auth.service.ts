@@ -8,18 +8,21 @@ import * as bcrypt from 'bcrypt'
 
 import { PrismaService } from '../prisma/prisma.service'
 import { UsersService } from '../users/users.service'
+import { MailService } from '../mail/mail.service'
 
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
 import { UpdatePasswordDto } from './dto/update.password.dto'
 import { UpdateUsernameDto } from './dto/update.username.dto'
+import { ResetPasswordDto } from './dto/reset-password.dto'
 
 @Injectable()
 export class AuthService {
 	constructor(
 		private prisma: PrismaService,
 		private users: UsersService,
-		private jwt: JwtService
+		private jwt: JwtService,
+		private mail: MailService
 	) {}
 
 	async register(dto: RegisterDto) {
@@ -39,15 +42,58 @@ export class AuthService {
 		}
 
 		const passwordHash = await bcrypt.hash(dto.password, 10)
-		await this.users.create({
+		const user = await this.users.create({
 			email: dto.email,
 			username: dto.username,
 			passwordHash,
 			newsletter: dto.mailing_enabled ?? false,
-			emailVerified: true
+			emailVerified: false
 		})
 
-		return { job_id: crypto.randomUUID() } // Placeholder for async job ID to send welcome email, etc.
+		await this.sendVerificationEmail(user.id, user.email)
+
+		return { job_id: crypto.randomUUID() }
+	}
+
+	async verifyEmail(token: string) {
+		const record = await this.prisma.emailVerificationToken.findUnique({
+			where: { token }
+		})
+
+		if (!record || record.expiresAt < new Date()) {
+			throw new BadRequestException('Invalid or expired verification token')
+		}
+
+		await this.prisma.user.update({
+			where: { id: record.userId },
+			data: { emailVerified: true }
+		})
+
+		await this.prisma.emailVerificationToken.delete({ where: { token } })
+	}
+
+	async resendVerification(email: string) {
+		const user = await this.users.findByEmail(email)
+		if (!user || user.emailVerified) return
+
+		await this.sendVerificationEmail(user.id, user.email)
+	}
+
+	private async sendVerificationEmail(userId: string, email: string) {
+		await this.prisma.emailVerificationToken.deleteMany({ where: { userId } })
+
+		const token = crypto.randomUUID()
+		await this.prisma.emailVerificationToken.create({
+			data: {
+				token,
+				userId,
+				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 часа
+			}
+		})
+
+		const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000'
+		const verifyUrl = `${frontendUrl}/email-confirmation?token=${token}`
+		await this.mail.sendEmailVerification(email, verifyUrl)
 	}
 
 	async login(dto: LoginDto) {
@@ -122,6 +168,7 @@ export class AuthService {
 			id: user.id,
 			email: user.email,
 			username: user.username,
+			avatarUrl: user.avatarUrl ?? null,
 			createdAt: user.createdAt
 		}
 	}
@@ -175,6 +222,10 @@ export class AuthService {
 		return this.users.updateUsername(userId, dto.username)
 	}
 
+	async updateAvatar(userId: string, avatarUrl: string) {
+		return this.users.updateAvatar(userId, avatarUrl)
+	}
+
 	async deleteAccount(userId: string) {
 		await this.users.deleteById(userId)
 	}
@@ -191,6 +242,51 @@ export class AuthService {
 			where: { id: userId },
 			data: { passwordHash }
 		})
+	}
+
+	async forgotPassword(email: string) {
+		const user = await this.users.findByEmail(email)
+		if (!user) return // не раскрываем существование аккаунта
+
+		await this.prisma.passwordResetToken.deleteMany({ where: { userId: user.id } })
+
+		const token = crypto.randomUUID()
+		await this.prisma.passwordResetToken.create({
+			data: {
+				token,
+				userId: user.id,
+				expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 час
+			}
+		})
+
+		const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000'
+		const resetUrl = `${frontendUrl}/password-change?token=${token}`
+		await this.mail.sendPasswordReset(user.email, resetUrl)
+	}
+
+	async resetPassword(dto: ResetPasswordDto) {
+		if (dto.password !== dto.password_confirmation) {
+			throw new BadRequestException({
+				message: 'Validation error',
+				errors: { password_confirmation: ['Passwords do not match'] }
+			})
+		}
+
+		const record = await this.prisma.passwordResetToken.findUnique({
+			where: { token: dto.token }
+		})
+
+		if (!record || record.expiresAt < new Date()) {
+			throw new BadRequestException('Invalid or expired reset token')
+		}
+
+		const passwordHash = await bcrypt.hash(dto.password, 10)
+		await this.prisma.user.update({
+			where: { id: record.userId },
+			data: { passwordHash }
+		})
+
+		await this.prisma.passwordResetToken.delete({ where: { token: dto.token } })
 	}
 
 	private async resolveUniqueUsername(base: string): Promise<string> {

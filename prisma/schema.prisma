@@ -8,19 +8,21 @@ datasource db {
 }
 
 model User {
-  id    String @id @default(cuid()) // cuid - это генератор уникальных идентификаторов, который создает строку из 25 символов, начинающуюся с "c" и состоящую из букв и цифр. Он гарантирует уникальность идентификаторов в рамках одной базы данных.
-  email String @unique // уникальный индекс для поля email, который гарантирует, что в базе данных не будет двух пользователей с одинаковым email
-
+  id            String   @id @default(cuid())
+  email         String   @unique
   username      String   @unique
   passwordHash  String?
   googleId      String?  @unique
   emailVerified Boolean  @default(false)
   newsletter    Boolean  @default(false)
+  avatarUrl     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  decks    Deck[]
-  sessions Session[]
+  decks                   Deck[]
+  sessions                Session[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
 }
 
 model Session {
@@ -29,10 +31,27 @@ model Session {
   refreshToken String   @unique
   expiresAt    DateTime
   createdAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [id]) // связь между сессией и пользователем, которая указывает, что каждая сессия принадлежит одному пользователю
+  user         User     @relation(fields: [userId], references: [id])
 }
 
-// Следующий этап:
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
 model Deck {
   id          String   @id @default(cuid())
   title       String
@@ -49,6 +68,6 @@ model Card {
   front     String
   back      String
   deckId    String
-  deck      Deck     @relation(fields: [deckId], references: [id])
   createdAt DateTime @default(now())
+  deck      Deck     @relation(fields: [deckId], references: [id])
 }
