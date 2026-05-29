@@ -23,6 +23,10 @@ export class UsersService {
 	}) {
 		return this.prisma.user.create({ data })
 	}
+
+	updateUsername(id: string, username: string) {
+		return this.prisma.user.update({ where: { id }, data: { username } })
+	}
 }
 
 // constructor(private prisma: PrismaService) — это Dependency Injection. NestJS сам создаст и подставит PrismaService, тебе не нужно делать new PrismaService()

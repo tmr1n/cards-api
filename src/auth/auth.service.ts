@@ -11,6 +11,7 @@ import { UsersService } from '../users/users.service'
 
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
+import { UpdateUsernameDto } from './dto/update,username'
 
 @Injectable()
 export class AuthService {
@@ -50,7 +51,8 @@ export class AuthService {
 
 	async login(dto: LoginDto) {
 		const user = await this.users.findByEmail(dto.email)
-		if (!user || !user.passwordHash) throw new UnauthorizedException('Invalid credentials')
+		if (!user || !user.passwordHash)
+			throw new UnauthorizedException('Invalid credentials')
 
 		const match = await bcrypt.compare(dto.password, user.passwordHash)
 		if (!match) throw new UnauthorizedException('Invalid credentials')
@@ -93,7 +95,11 @@ export class AuthService {
 		return { access_token: accessToken }
 	}
 
-	async loginUser(user: { id: string; email: string; emailVerified: boolean }) {
+	async loginUser(user: {
+		id: string
+		email: string
+		emailVerified: boolean
+	}) {
 		const accessToken = this.jwt.sign({ sub: user.id, email: user.email })
 		const refreshToken = crypto.randomUUID()
 		await this.prisma.session.create({
@@ -113,10 +119,9 @@ export class AuthService {
 			id: user.id,
 			email: user.email,
 			username: user.username,
-			createdAt: user.createdAt,
+			createdAt: user.createdAt
 		}
 	}
-
 
 	async findOrCreateGoogleUser(data: {
 		googleId: string
@@ -128,7 +133,9 @@ export class AuthService {
 		})
 
 		if (!user) {
-			user = await this.prisma.user.findUnique({ where: { email: data.email } })
+			user = await this.prisma.user.findUnique({
+				where: { email: data.email }
+			})
 			if (user) {
 				user = await this.prisma.user.update({
 					where: { id: user.id },
@@ -139,7 +146,9 @@ export class AuthService {
 					data: {
 						googleId: data.googleId,
 						email: data.email,
-						username: await this.resolveUniqueUsername(data.username),
+						username: await this.resolveUniqueUsername(
+							data.username
+						),
 						emailVerified: true,
 						newsletter: false
 					}
@@ -150,9 +159,24 @@ export class AuthService {
 		return user
 	}
 
+	async updateUsername(userId: string, dto: UpdateUsernameDto) {
+		const existing = await this.prisma.user.findUnique({
+			where: { username: dto.username }
+		})
+		if (existing && existing.id !== userId) {
+			throw new BadRequestException({
+				message: 'Validation error',
+				errors: { username: ['Username is already taken'] }
+			})
+		}
+		return this.users.updateUsername(userId, dto.username)
+	}
+
 	private async resolveUniqueUsername(base: string): Promise<string> {
 		const sanitized = base.replace(/\s+/g, '_').slice(0, 20)
-		const existing = await this.prisma.user.findUnique({ where: { username: sanitized } })
+		const existing = await this.prisma.user.findUnique({
+			where: { username: sanitized }
+		})
 		if (!existing) return sanitized
 		return `${sanitized}_${Math.random().toString(36).slice(2, 7)}`
 	}

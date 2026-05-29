@@ -2,6 +2,7 @@ import {
 	Body,
 	Controller,
 	Get,
+	Patch,
 	Post,
 	Req,
 	Res,
@@ -14,6 +15,7 @@ import type { Request, Response } from 'express'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
+import { UpdateUsernameDto } from './dto/update,username'
 
 const REFRESH_COOKIE = 'refresh_token'
 const COOKIE_OPTIONS = {
@@ -82,5 +84,13 @@ export class AuthController {
 		res.redirect(
 			`${process.env.FRONTEND_URL}/auth/callback?token=${tokens.access_token}`
 		)
+	}
+
+	@Patch('profile')
+	@UseGuards(AuthGuard('jwt'))
+	async updateProfile(@Req() req: Request, @Body() dto: UpdateUsernameDto) {
+		const user = req.user as { id: string; email: string }
+		await this.auth.updateUsername(user.id, dto)
+		return { success: true, message: 'Username updated', data: null }
 	}
 }
