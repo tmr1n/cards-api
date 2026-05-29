@@ -15,7 +15,8 @@ import type { Request, Response } from 'express'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
-import { UpdateUsernameDto } from './dto/update,username'
+import { UpdatePasswordDto } from './dto/update.password.dto'
+import { UpdateUsernameDto } from './dto/update.username.dto'
 
 const REFRESH_COOKIE = 'refresh_token'
 const COOKIE_OPTIONS = {
@@ -92,5 +93,12 @@ export class AuthController {
 		const user = req.user as { id: string; email: string }
 		await this.auth.updateUsername(user.id, dto)
 		return { success: true, message: 'Username updated', data: null }
+	}
+	@Post('updatePassword')
+	@UseGuards(AuthGuard('jwt'))
+	async updatePassword(@Req() req: Request, @Body() dto: UpdatePasswordDto) {
+		const user = req.user as { id: string; email: string }
+		await this.auth.updatePassword(user.id, dto)
+		return { success: true, message: 'Password updated', data: null }
 	}
 }

@@ -11,7 +11,8 @@ import { UsersService } from '../users/users.service'
 
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
-import { UpdateUsernameDto } from './dto/update,username'
+import { UpdatePasswordDto } from './dto/update.password.dto'
+import { UpdateUsernameDto } from './dto/update.username.dto'
 
 @Injectable()
 export class AuthService {
@@ -170,6 +171,20 @@ export class AuthService {
 			})
 		}
 		return this.users.updateUsername(userId, dto.username)
+	}
+
+	async updatePassword(userId: string, dto: UpdatePasswordDto) {
+		if (dto.password !== dto.password_confirmation) {
+			throw new BadRequestException({
+				message: 'Validation error',
+				errors: { password_confirmation: ['Passwords do not match'] }
+			})
+		}
+		const passwordHash = await bcrypt.hash(dto.password, 10)
+		await this.prisma.user.update({
+			where: { id: userId },
+			data: { passwordHash }
+		})
 	}
 
 	private async resolveUniqueUsername(base: string): Promise<string> {
