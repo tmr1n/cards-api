@@ -22,6 +22,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto'
 import { ResetPasswordDto } from './dto/reset-password.dto'
 import { VerifyEmailDto } from './dto/verify-email.dto'
 import { ResendVerificationDto } from './dto/resend-verification.dto'
+import { LinkGoogleDto } from './dto/link-google.dto'
 
 const REFRESH_COOKIE = 'refresh_token'
 const COOKIE_OPTIONS = {
@@ -85,11 +86,30 @@ export class AuthController {
 	@Get('google/callback')
 	@UseGuards(AuthGuard('google'))
 	async googleCallback(@Req() req: Request, @Res() res: Response) {
-		const tokens = await this.auth.loginUser(req.user as any)
+		const result = req.user as Awaited<ReturnType<typeof this.auth.findOrCreateGoogleUser>>
+
+		if (result.conflict) {
+			const pendingToken = this.auth.createPendingLinkToken(result)
+			return res.redirect(
+				`${process.env.FRONTEND_URL}/already-exist?token=${pendingToken}`
+			)
+		}
+
+		const tokens = await this.auth.loginUser(result.user)
 		res.cookie(REFRESH_COOKIE, tokens.refreshToken, COOKIE_OPTIONS)
 		res.redirect(
 			`${process.env.FRONTEND_URL}/auth/callback?token=${tokens.access_token}`
 		)
+	}
+
+	@Post('google/link-account')
+	async linkGoogleAccount(
+		@Body() dto: LinkGoogleDto,
+		@Res({ passthrough: true }) res: Response
+	) {
+		const tokens = await this.auth.linkGoogleAccount(dto.token, dto.password)
+		res.cookie(REFRESH_COOKIE, tokens.refreshToken, COOKIE_OPTIONS)
+		return { success: true, message: 'Account linked', data: { access_token: tokens.access_token } }
 	}
 
 	@Patch('profile')

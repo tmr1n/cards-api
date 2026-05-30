@@ -7,14 +7,21 @@ export class MailService {
 	private resend: Resend
 	private readonly logger = new Logger(MailService.name)
 
+	private devEmail: string | undefined
+
 	constructor(private config: ConfigService) {
 		this.resend = new Resend(this.config.getOrThrow('RESEND_API_KEY'))
+		this.devEmail = this.config.get<string>('DEV_EMAIL')
+	}
+
+	private resolveRecipient(email: string): string {
+		return this.devEmail ?? email
 	}
 
 	async sendEmailVerification(email: string, verifyUrl: string) {
 		const { error } = await this.resend.emails.send({
 			from: 'LangCards <onboarding@resend.dev>',
-			to: email,
+			to: this.resolveRecipient(email),
 			subject: 'Подтвердите email — LangCards',
 			html: `
 				<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
@@ -40,7 +47,7 @@ export class MailService {
 	async sendPasswordReset(email: string, resetUrl: string) {
 		const { error } = await this.resend.emails.send({
 			from: 'LangCards <onboarding@resend.dev>',
-			to: email,
+			to: this.resolveRecipient(email),
 			subject: 'Сброс пароля — LangCards',
 			html: `
 				<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">

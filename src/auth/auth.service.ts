@@ -35,6 +35,10 @@ export class AuthService {
 
 		const existing = await this.users.findByEmail(dto.email)
 		if (existing) {
+			if (!existing.emailVerified) {
+				await this.sendVerificationEmail(existing.id, existing.email)
+				return { job_id: crypto.randomUUID() }
+			}
 			throw new BadRequestException({
 				message: 'Validation error',
 				errors: { email: ['Email is already taken'] }
@@ -187,6 +191,15 @@ export class AuthService {
 				where: { email: data.email }
 			})
 			if (user) {
+				if (user.passwordHash) {
+					return {
+						conflict: true as const,
+						googleId: data.googleId,
+						email: user.email,
+						username: user.username,
+						avatarUrl: user.avatarUrl
+					}
+				}
 				user = await this.prisma.user.update({
 					where: { id: user.id },
 					data: { googleId: data.googleId, emailVerified: true }
@@ -196,9 +209,7 @@ export class AuthService {
 					data: {
 						googleId: data.googleId,
 						email: data.email,
-						username: await this.resolveUniqueUsername(
-							data.username
-						),
+						username: await this.resolveUniqueUsername(data.username),
 						emailVerified: true,
 						newsletter: false
 					}
@@ -206,7 +217,49 @@ export class AuthService {
 			}
 		}
 
-		return user
+		return { conflict: false as const, user }
+	}
+
+	createPendingLinkToken(data: {
+		googleId: string
+		email: string
+		username: string
+		avatarUrl: string | null
+	}): string {
+		return this.jwt.sign(
+			{ googleId: data.googleId, email: data.email, username: data.username, avatarUrl: data.avatarUrl, type: 'pending_link' },
+			{ expiresIn: '5m' }
+		)
+	}
+
+	async linkGoogleAccount(pendingToken: string, password: string) {
+		let payload: any
+		try {
+			payload = this.jwt.verify(pendingToken)
+		} catch {
+			throw new BadRequestException('Invalid or expired token')
+		}
+
+		if (payload.type !== 'pending_link') {
+			throw new BadRequestException('Invalid token type')
+		}
+
+		const user = await this.users.findByEmail(payload.email)
+		if (!user || !user.passwordHash) {
+			throw new BadRequestException('Account not found')
+		}
+
+		const match = await bcrypt.compare(password, user.passwordHash)
+		if (!match) {
+			throw new UnauthorizedException('Invalid password')
+		}
+
+		await this.prisma.user.update({
+			where: { id: user.id },
+			data: { googleId: payload.googleId, emailVerified: true }
+		})
+
+		return this.loginUser(user)
 	}
 
 	async updateUsername(userId: string, dto: UpdateUsernameDto) {

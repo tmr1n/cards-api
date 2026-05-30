@@ -41,6 +41,8 @@ export class UsersService {
 			this.prisma.card.deleteMany({ where: { deck: { userId: id } } }),
 			this.prisma.deck.deleteMany({ where: { userId: id } }),
 			this.prisma.session.deleteMany({ where: { userId: id } }),
+			this.prisma.passwordResetToken.deleteMany({ where: { userId: id } }),
+			this.prisma.emailVerificationToken.deleteMany({ where: { userId: id } }),
 			this.prisma.user.delete({ where: { id } })
 		])
 	}
