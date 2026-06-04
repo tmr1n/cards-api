@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common'
+import {
+	Injectable,
+	InternalServerErrorException,
+	Logger
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Resend } from 'resend'
 
@@ -40,7 +44,9 @@ export class MailService {
 
 		if (error) {
 			this.logger.error('sendEmailVerification failed', error)
-			throw new InternalServerErrorException('Failed to send verification email')
+			throw new InternalServerErrorException(
+				'Failed to send verification email'
+			)
 		}
 	}
 
