@@ -14,15 +14,15 @@ import { AuthGuard } from '@nestjs/passport'
 import type { Request, Response } from 'express'
 
 import { AuthService } from './auth.service'
+import { ForgotPasswordDto } from './dto/forgot-password.dto'
+import { LinkGoogleDto } from './dto/link-google.dto'
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
-import { UpdatePasswordDto } from './dto/update.password.dto'
-import { UpdateProfileDto } from './dto/update-profile.dto'
-import { ForgotPasswordDto } from './dto/forgot-password.dto'
-import { ResetPasswordDto } from './dto/reset-password.dto'
-import { VerifyEmailDto } from './dto/verify-email.dto'
 import { ResendVerificationDto } from './dto/resend-verification.dto'
-import { LinkGoogleDto } from './dto/link-google.dto'
+import { ResetPasswordDto } from './dto/reset-password.dto'
+import { UpdateProfileDto } from './dto/update-profile.dto'
+import { UpdatePasswordDto } from './dto/update.password.dto'
+import { VerifyEmailDto } from './dto/verify-email.dto'
 
 const REFRESH_COOKIE = 'refresh_token'
 const COOKIE_OPTIONS = {
@@ -86,7 +86,9 @@ export class AuthController {
 	@Get('google/callback')
 	@UseGuards(AuthGuard('google'))
 	async googleCallback(@Req() req: Request, @Res() res: Response) {
-		const result = req.user as Awaited<ReturnType<typeof this.auth.findOrCreateGoogleUser>>
+		const result = req.user as Awaited<
+			ReturnType<typeof this.auth.findOrCreateGoogleUser>
+		>
 
 		if (result.conflict) {
 			const pendingToken = this.auth.createPendingLinkToken(result)
@@ -107,17 +109,26 @@ export class AuthController {
 		@Body() dto: LinkGoogleDto,
 		@Res({ passthrough: true }) res: Response
 	) {
-		const tokens = await this.auth.linkGoogleAccount(dto.token, dto.password)
+		const tokens = await this.auth.linkGoogleAccount(
+			dto.token,
+			dto.password
+		)
 		res.cookie(REFRESH_COOKIE, tokens.refreshToken, COOKIE_OPTIONS)
-		return { success: true, message: 'Account linked', data: { access_token: tokens.access_token } }
+		return {
+			success: true,
+			message: 'Account linked',
+			data: { access_token: tokens.access_token }
+		}
 	}
 
 	@Patch('profile')
 	@UseGuards(AuthGuard('jwt'))
 	async updateProfile(@Req() req: Request, @Body() dto: UpdateProfileDto) {
 		const user = req.user as { id: string; email: string }
-		if (dto.username) await this.auth.updateUsername(user.id, { username: dto.username })
-		if (dto.avatarUrl !== undefined) await this.auth.updateAvatar(user.id, dto.avatarUrl)
+		if (dto.username)
+			await this.auth.updateUsername(user.id, { username: dto.username })
+		if (dto.avatarUrl !== undefined)
+			await this.auth.updateAvatar(user.id, dto.avatarUrl)
 		return { success: true, message: 'Profile updated', data: null }
 	}
 	@Post('updatePassword')

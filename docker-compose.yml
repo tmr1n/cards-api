@@ -1,0 +1,24 @@
+services:
+    db:
+        image: postgres:16
+        container_name: cards-db
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: cards
+            POSTGRES_PASSWORD: cards_dev_password
+            POSTGRES_DB: cards
+        ports:
+            - '5433:5432'
+        volumes:
+            - cards-db-data:/var/lib/postgresql/data
+
+    mail:
+        image: axllent/mailpit:latest
+        container_name: cards-mail
+        restart: unless-stopped
+        ports:
+            - '1025:1025'
+            - '8025:8025'
+
+volumes:
+    cards-db-data:
