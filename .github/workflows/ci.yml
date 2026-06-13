@@ -1,0 +1,39 @@
+name: CI
+
+# Когда запускать: на push в master и на любой pull request
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # чистая виртуалка от GitHub
+
+    steps:
+      # 1. Забрать код из репозитория на виртуалку
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Установить Node той же версии, что у тебя локально
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm # кешируем зависимости между запусками — быстрее
+
+      # 3. Установить зависимости строго по package-lock.json
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Сгенерировать Prisma Client (нужен до сборки — на него ссылается код)
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      # 5. Собрать проект (заодно проверка типов TypeScript)
+      - name: Build
+        run: npm run build
+
+      # 6. Прогнать тесты (пока их нет — passWithNoTests держит шаг зелёным)
+      - name: Test
+        run: npm test -- --passWithNoTests
