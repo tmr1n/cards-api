@@ -11,6 +11,7 @@ import {
 	UseGuards
 } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
+import { Throttle } from '@nestjs/throttler'
 import type { Request, Response } from 'express'
 
 import { AuthService } from './auth.service'
@@ -27,6 +28,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto'
 const REFRESH_COOKIE = 'refresh_token'
 const COOKIE_OPTIONS = {
 	httpOnly: true,
+	secure: process.env.NODE_ENV === 'production',
 	sameSite: 'lax' as const,
 	maxAge: 30 * 24 * 60 * 60 * 1000
 }
@@ -41,6 +43,8 @@ export class AuthController {
 		return { success: true, message: 'Registration successful', data }
 	}
 
+	// брутфорс-защита: максимум 5 попыток входа за 60 сек с одного IP
+	@Throttle({ default: { limit: 5, ttl: 60000 } })
 	@Post('login')
 	async login(
 		@Body() dto: LoginDto,
