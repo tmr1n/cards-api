@@ -11,8 +11,12 @@ async function bootstrap() {
 	app.setGlobalPrefix('api/v1')
 	app.useGlobalPipes(new ValidationPipe({ whitelist: true }))
 	app.use(cookieParser())
+	// разрешённые origin'ы задаём через env (через запятую), fallback — локальный дев
+	const corsOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:3000')
+		.split(',')
+		.map(origin => origin.trim())
 	app.enableCors({
-		origin: 'http://localhost:3000',
+		origin: corsOrigins,
 		credentials: true
 	})
 
