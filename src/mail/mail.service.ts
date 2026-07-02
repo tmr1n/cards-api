@@ -23,11 +23,17 @@ export class MailService {
 	private readonly logger = new Logger(MailService.name)
 
 	constructor(private config: ConfigService) {
+		const smtpUser = this.config.get<string>('SMTP_USER')
+		const smtpPass = this.config.get<string>('SMTP_PASS')
+
 		this.transporter = nodemailer.createTransport({
 			host: this.config.getOrThrow<string>('SMTP_HOST'),
 			port: Number(this.config.getOrThrow<string>('SMTP_PORT')),
-			// Mailpit (dev) runs without TLS; in prod use secure=true + auth
-			secure: false
+			// Mailpit (dev) — без TLS/авторизации; прод-релей (напр. Brevo) — порт 587, STARTTLS, логин/пароль
+			secure: false,
+			...(smtpUser && smtpPass
+				? { auth: { user: smtpUser, pass: smtpPass } }
+				: {})
 		})
 
 		this.from =
