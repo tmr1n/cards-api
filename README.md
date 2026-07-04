@@ -52,4 +52,4 @@ npm test
 
 ## Frontend
 
-Das zugehörige Frontend (Next.js) liegt in einem separaten Repository (LangCards Frontend).
+Das zugehörige Frontend (Next.js) liegt in einem separaten Repository: [tmr1n/projectcards](https://github.com/tmr1n/projectcards).
