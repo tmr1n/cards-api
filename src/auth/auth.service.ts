@@ -128,7 +128,33 @@ export class AuthService {
 		}
 	}
 	async logout(refreshToken: string) {
+		const session = await this.prisma.session.findUnique({
+			where: { refreshToken },
+			include: { user: true }
+		})
+		// Гостевой демо-аккаунт удаляем целиком при выходе (колоды/сессии — каскадом)
+		if (session?.user && session.user.email.endsWith('@guest.langcards')) {
+			await this.users.deleteById(session.user.id)
+			return
+		}
 		await this.prisma.session.deleteMany({ where: { refreshToken } })
+	}
+
+	// Гостевой демо-вход: создаёт временного юзера, при logout он удаляется
+	async demoLogin() {
+		const user = await this.prisma.user.create({
+			data: {
+				email: `demo-${crypto.randomUUID()}@guest.langcards`,
+				username: `Gast-${crypto.randomUUID().slice(0, 8)}`,
+				emailVerified: true,
+				newsletter: false
+			}
+		})
+		return this.loginUser({
+			id: user.id,
+			email: user.email,
+			emailVerified: user.emailVerified
+		})
 	}
 
 	async refresh(refreshToken: string) {

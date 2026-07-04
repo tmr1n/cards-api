@@ -55,6 +55,14 @@ export class AuthController {
 		return { success: true, message: 'Login successful', data }
 	}
 
+	@Throttle({ default: { limit: 10, ttl: 60000 } })
+	@Post('demo')
+	async demoLogin(@Res({ passthrough: true }) res: Response) {
+		const { refreshToken, ...data } = await this.auth.demoLogin()
+		res.cookie(REFRESH_COOKIE, refreshToken, COOKIE_OPTIONS)
+		return { success: true, message: 'Demo login', data }
+	}
+
 	@Post('logout')
 	async logout(
 		@Req() req: Request,
