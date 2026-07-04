@@ -147,15 +147,15 @@ export class MailService {
 		return `
 		<div style="background:#f4f4f5;padding:32px 16px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 			<div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
-				<div style="background:#2563eb;padding:20px 32px;">
+				<div style="background:#7c3aed;padding:20px 32px;">
 					<span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.02em;">LangCards</span>
 				</div>
 				<div style="padding:32px;">
 					<h1 style="margin:0 0 16px;font-size:20px;color:#18181b;">${opts.heading}</h1>
 					<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#3f3f46;">${opts.intro}</p>
-					<a href="${opts.buttonUrl}" style="display:inline-block;padding:12px 28px;background:#2563eb;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">${opts.buttonLabel}</a>
+					<a href="${opts.buttonUrl}" style="display:inline-block;padding:12px 28px;background:#7c3aed;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">${opts.buttonLabel}</a>
 					<p style="margin:24px 0 0;font-size:13px;color:#71717a;">${opts.note}</p>
-					<p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#a1a1aa;word-break:break-all;">Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br /><a href="${opts.buttonUrl}" style="color:#2563eb;">${opts.buttonUrl}</a></p>
+					<p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#a1a1aa;word-break:break-all;">Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br /><a href="${opts.buttonUrl}" style="color:#7c3aed;">${opts.buttonUrl}</a></p>
 				</div>
 				<div style="padding:16px 32px;border-top:1px solid #e4e4e7;">
 					<p style="margin:0;font-size:12px;line-height:1.5;color:#a1a1aa;">${opts.footer}</p>
