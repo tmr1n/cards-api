@@ -140,6 +140,23 @@ export class AuthService {
 		await this.prisma.session.deleteMany({ where: { refreshToken } })
 	}
 
+	// Logout по access-токену (когда refresh-куки нет — запросы идут через
+	// server actions). Гостя удаляем целиком, обычному юзеру чистим сессии.
+	async logoutByAccessToken(accessToken: string) {
+		let payload: { sub: string; email: string }
+		try {
+			payload = this.jwt.verify(accessToken)
+		} catch {
+			return // истёкший/битый токен — выходить и так не из чего
+		}
+
+		if (payload.email?.endsWith('@guest.langcards')) {
+			await this.users.deleteById(payload.sub)
+			return
+		}
+		await this.prisma.session.deleteMany({ where: { userId: payload.sub } })
+	}
+
 	// Гостевой демо-вход: создаёт временного юзера, при logout он удаляется
 	async demoLogin() {
 		const user = await this.prisma.user.create({

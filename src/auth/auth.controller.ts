@@ -69,7 +69,15 @@ export class AuthController {
 		@Res({ passthrough: true }) res: Response
 	) {
 		const token = req.cookies?.[REFRESH_COOKIE]
-		if (token) await this.auth.logout(token)
+		if (token) {
+			await this.auth.logout(token)
+		} else {
+			// Фронт ходит через Next server actions (Node-fetch) — refresh-кука
+			// туда не доезжает. Fallback: определяем юзера по Bearer-токену,
+			// иначе демо-гости никогда не удалялись бы из БД.
+			const bearer = req.headers.authorization?.replace('Bearer ', '')
+			if (bearer) await this.auth.logoutByAccessToken(bearer)
+		}
 		res.clearCookie(REFRESH_COOKIE)
 		return { success: true, message: 'Logged out', data: null }
 	}
