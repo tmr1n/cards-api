@@ -18,27 +18,34 @@ interface MailLayoutOptions {
 
 @Injectable()
 export class MailService {
-	private transporter: Transporter
+	private transporter?: Transporter
 	private readonly from: string
+	private readonly fromParsed: { name: string; email: string }
+	private readonly brevoApiKey?: string
 	private readonly logger = new Logger(MailService.name)
 
 	constructor(private config: ConfigService) {
-		const smtpUser = this.config.get<string>('SMTP_USER')
-		const smtpPass = this.config.get<string>('SMTP_PASS')
-
-		this.transporter = nodemailer.createTransport({
-			host: this.config.getOrThrow<string>('SMTP_HOST'),
-			port: Number(this.config.getOrThrow<string>('SMTP_PORT')),
-			// Mailpit (dev) — без TLS/авторизации; прод-релей (напр. Brevo) — порт 587, STARTTLS, логин/пароль
-			secure: false,
-			...(smtpUser && smtpPass
-				? { auth: { user: smtpUser, pass: smtpPass } }
-				: {})
-		})
-
 		this.from =
 			this.config.get<string>('MAIL_FROM') ??
 			'LangCards <noreply@langcards.local>'
+		this.fromParsed = this.parseFrom(this.from)
+		this.brevoApiKey = this.config.get<string>('BREVO_API_KEY')
+
+		// В проде (Railway) исходящий SMTP заблокирован → шлём через Brevo HTTP API.
+		// Локально (ohne BREVO_API_KEY) — обычный SMTP (Mailpit).
+		if (!this.brevoApiKey) {
+			const smtpUser = this.config.get<string>('SMTP_USER')
+			const smtpPass = this.config.get<string>('SMTP_PASS')
+
+			this.transporter = nodemailer.createTransport({
+				host: this.config.getOrThrow<string>('SMTP_HOST'),
+				port: Number(this.config.getOrThrow<string>('SMTP_PORT')),
+				secure: false,
+				...(smtpUser && smtpPass
+					? { auth: { user: smtpUser, pass: smtpPass } }
+					: {})
+			})
+		}
 	}
 
 	async sendEmailVerification(email: string, verifyUrl: string) {
@@ -83,12 +90,56 @@ export class MailService {
 		html: string,
 		context: string
 	) {
+		// Прод: Brevo Transactional Email API (HTTPS, обходит SMTP-блокировку der PaaS)
+		if (this.brevoApiKey) {
+			try {
+				const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+					method: 'POST',
+					headers: {
+						'api-key': this.brevoApiKey,
+						'content-type': 'application/json',
+						accept: 'application/json'
+					},
+					body: JSON.stringify({
+						sender: this.fromParsed,
+						to: [{ email: to }],
+						subject,
+						htmlContent: html
+					})
+				})
+
+				if (!res.ok) {
+					const body = await res.text()
+					throw new Error(`Brevo API ${res.status}: ${body}`)
+				}
+			} catch (err) {
+				this.logger.error(`${context} failed (Brevo)`, err)
+				throw new InternalServerErrorException('Failed to send email')
+			}
+			return
+		}
+
+		// Локальная разработка: SMTP (Mailpit)
 		try {
-			await this.transporter.sendMail({ from: this.from, to, subject, html })
+			await this.transporter!.sendMail({
+				from: this.from,
+				to,
+				subject,
+				html
+			})
 		} catch (err) {
-			this.logger.error(`${context} failed`, err)
+			this.logger.error(`${context} failed (SMTP)`, err)
 			throw new InternalServerErrorException('Failed to send email')
 		}
+	}
+
+	// "LangCards <noreply@x>" → { name: 'LangCards', email: 'noreply@x' }
+	private parseFrom(from: string): { name: string; email: string } {
+		const match = from.match(/^(.*?)\s*<(.+)>$/)
+		if (match) {
+			return { name: match[1].trim() || 'LangCards', email: match[2].trim() }
+		}
+		return { name: 'LangCards', email: from.trim() }
 	}
 
 	// Shared, email-client-safe layout (inline styles, max-width card)
