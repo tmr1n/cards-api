@@ -4,7 +4,7 @@ Backend für **LangCards** — eine Lernkarten-App zum Sprachenlernen. REST-API 
 
 [![CI](https://github.com/tmr1n/cards-api/actions/workflows/ci.yml/badge.svg)](https://github.com/tmr1n/cards-api/actions/workflows/ci.yml)
 
-> Nicht-kommerzielles Lernprojekt. **[Live-API-Doku (Swagger)](https://cards-api-production-92cf.up.railway.app/api/docs)**
+> Nicht-kommerzielles Lernprojekt. **[Live-Demo](https://projectcards-production-202e.up.railway.app)** · **[API-Doku (Swagger)](https://cards-api-production-92cf.up.railway.app/api/docs)**
 
 ## Features
 
@@ -12,7 +12,7 @@ Backend für **LangCards** — eine Lernkarten-App zum Sprachenlernen. REST-API 
 - **Google OAuth 2.0** (Passport-Strategie) inkl. Konto-Verknüpfung, wenn die E-Mail bereits mit Passwort registriert ist
 - **Demo-Gastzugang**: `POST /demo` erstellt ein temporäres Konto; beim Logout wird es mitsamt allen Daten in einer Transaktion gelöscht
 - **Sicherheit**: bcrypt-Passwort-Hashing, Rate-Limiting (global 100/min, Login 5/min pro IP), `secure` httpOnly-Cookies, Besitz-Prüfung bei allen Deck-/Karten-Zugriffen
-- **E-Mail-Versand**: Brevo HTTP-API in Produktion (die Hosting-Plattform blockiert ausgehendes SMTP), Nodemailer + Mailpit in der lokalen Entwicklung
+- **E-Mail-Versand**: Nodemailer mit Mailpit in der lokalen Entwicklung. Im Live-Deployment ist der Versand deaktiviert (die Hosting-Plattform blockiert ausgehendes SMTP) — die Anmeldung erfolgt über Google oder den Demo-Zugang
 - **Swagger/OpenAPI**-Dokumentation, **GitHub Actions** CI (Build + Tests)
 
 ## Tech-Stack
@@ -65,7 +65,7 @@ npm run start:dev
 |--------|--------|
 | `src/auth` | Registrierung, Login, Tokens, Google OAuth, Demo-Login, Passwort-Reset |
 | `src/users` · `src/decks` · `src/cards` | Domänenmodule (Nutzer, Stapel, Karten) |
-| `src/mail` | E-Mail-Versand (Brevo API / Nodemailer) |
+| `src/mail` | E-Mail-Versand (Nodemailer, lokal via Mailpit) |
 | `src/prisma` | Datenbankzugriff (Prisma) |
 | `prisma/` | Schema und Migrationen |
 
