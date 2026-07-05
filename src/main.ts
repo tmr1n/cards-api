@@ -32,6 +32,7 @@ async function bootstrap() {
 	const document = SwaggerModule.createDocument(app, swaggerConfig)
 	SwaggerModule.setup('api/docs', app, document)
 
-	await app.listen(3001)
+	// Railway (und andere PaaS) injizieren den Port über die Umgebung
+	await app.listen(process.env.PORT ?? 3001)
 }
 bootstrap()

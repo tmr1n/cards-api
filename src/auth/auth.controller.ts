@@ -2,6 +2,7 @@ import {
 	Body,
 	Controller,
 	Delete,
+	ForbiddenException,
 	Get,
 	Patch,
 	Post,
@@ -39,6 +40,13 @@ export class AuthController {
 
 	@Post('registration')
 	async register(@Body() dto: RegisterDto) {
+		// Im Live-Deployment ist die E-Mail-Registrierung deaktiviert (kein
+		// Mailversand). Der Endpoint wird auch direkt geschützt, nicht nur im UI.
+		if (process.env.NODE_ENV === 'production') {
+			throw new ForbiddenException(
+				'Die Registrierung per E-Mail ist derzeit deaktiviert'
+			)
+		}
 		const data = await this.auth.register(dto)
 		return { success: true, message: 'Registration successful', data }
 	}

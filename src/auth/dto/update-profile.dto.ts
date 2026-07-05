@@ -8,7 +8,13 @@ export class UpdateProfileDto {
 	@IsOptional()
 	username?: string
 
+	// Nur eigene Preset-Avatare (/avatars/N.svg) oder von UploadThing gehostete
+	// Bilder zulassen — keine beliebigen externen URLs (Tracking/kaputte Bilder).
 	@IsString()
+	@Matches(
+		/^\/avatars\/[0-9]+\.svg$|^https:\/\/([a-z0-9-]+\.)?ufs\.sh\/|^https:\/\/utfs\.io\//,
+		{ message: 'Invalid avatar URL' }
+	)
 	@IsOptional()
 	avatarUrl?: string
 }

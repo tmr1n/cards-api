@@ -333,6 +333,18 @@ export class AuthService {
 				errors: { password_confirmation: ['Passwords do not match'] }
 			})
 		}
+
+		// Re-Authentifizierung: aktuelles Passwort muss stimmen. Sonst könnte
+		// ein gestohlener Access-Token das Passwort setzen = dauerhafte Übernahme.
+		const user = await this.users.findById(userId)
+		if (!user || !user.passwordHash) {
+			throw new BadRequestException('Für dieses Konto ist kein Passwort gesetzt')
+		}
+		const match = await bcrypt.compare(dto.old_password, user.passwordHash)
+		if (!match) {
+			throw new UnauthorizedException('Aktuelles Passwort ist falsch')
+		}
+
 		const passwordHash = await bcrypt.hash(dto.password, 10)
 		await this.prisma.user.update({
 			where: { id: userId },
