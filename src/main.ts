@@ -32,7 +32,8 @@ async function bootstrap() {
 	const document = SwaggerModule.createDocument(app, swaggerConfig)
 	SwaggerModule.setup('api/docs', app, document)
 
-	// Railway (und andere PaaS) injizieren den Port über die Umgebung
-	await app.listen(process.env.PORT ?? 3001)
+	// Fester Port — die Railway-Umgebung ist auf 3001 konfiguriert.
+	// (process.env.PORT führte zu 502, weil das Routing auf 3001 zeigt.)
+	await app.listen(3001)
 }
 bootstrap()
