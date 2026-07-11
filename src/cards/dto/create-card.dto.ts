@@ -1,4 +1,11 @@
-import { IsString, MaxLength, MinLength } from 'class-validator'
+import {
+	IsInt,
+	IsOptional,
+	IsString,
+	MaxLength,
+	Min,
+	MinLength
+} from 'class-validator'
 
 export class CreateCardDto {
 	@IsString()
@@ -10,4 +17,10 @@ export class CreateCardDto {
 	@MinLength(1)
 	@MaxLength(35)
 	back: string
+
+	// Позиция карточки в колоде (для сохранения порядка после drag-n-drop)
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	order?: number
 }

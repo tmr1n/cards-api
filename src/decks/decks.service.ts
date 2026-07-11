@@ -44,7 +44,7 @@ export class DecksService {
 	async findOne(id: string, userId: string) {
 		const deck = await this.prisma.deck.findUnique({
 			where: { id },
-			include: { cards: true }
+			include: { cards: { orderBy: { order: 'asc' } } }
 		})
 		if (!deck) throw new NotFoundException('Deck not found')
 		if (deck.userId !== userId) throw new ForbiddenException()

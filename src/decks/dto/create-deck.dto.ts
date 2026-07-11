@@ -8,6 +8,6 @@ export class CreateDeckDto {
 
 	@IsString()
 	@IsOptional()
-	@MaxLength(25)
+	@MaxLength(255)
 	description?: string
 }

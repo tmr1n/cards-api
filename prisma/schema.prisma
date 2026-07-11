@@ -67,6 +67,7 @@ model Card {
   id        String   @id @default(cuid())
   front     String
   back      String
+  order     Int      @default(0)
   deckId    String
   createdAt DateTime @default(now())
   deck      Deck     @relation(fields: [deckId], references: [id])

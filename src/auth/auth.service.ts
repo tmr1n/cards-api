@@ -189,7 +189,9 @@ export class AuthService {
 					data: {
 						title: deck.title,
 						userId,
-						cards: { create: deck.cards }
+						cards: {
+						create: deck.cards.map((c, i) => ({ ...c, order: i }))
+					}
 					}
 				})
 			)
@@ -282,6 +284,8 @@ export class AuthService {
 						newsletter: false
 					}
 				})
+				// Новому Google-аккаунту — те же стартовые колоды, что демо/регистрации
+				await this.seedStarterDecks(user.id)
 			}
 		}
 
