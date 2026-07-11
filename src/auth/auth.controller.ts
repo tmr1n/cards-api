@@ -2,7 +2,6 @@ import {
 	Body,
 	Controller,
 	Delete,
-	ForbiddenException,
 	Get,
 	Patch,
 	Post,
@@ -26,6 +25,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto'
 import { UpdatePasswordDto } from './dto/update.password.dto'
 import { VerifyEmailDto } from './dto/verify-email.dto'
 
+
 const REFRESH_COOKIE = 'refresh_token'
 const COOKIE_OPTIONS = {
 	httpOnly: true,
@@ -40,13 +40,6 @@ export class AuthController {
 
 	@Post('registration')
 	async register(@Body() dto: RegisterDto) {
-		// Im Live-Deployment ist die E-Mail-Registrierung deaktiviert (kein
-		// Mailversand). Der Endpoint wird auch direkt geschützt, nicht nur im UI.
-		if (process.env.NODE_ENV === 'production') {
-			throw new ForbiddenException(
-				'Die Registrierung per E-Mail ist derzeit deaktiviert'
-			)
-		}
 		const data = await this.auth.register(dto)
 		return { success: true, message: 'Registration successful', data }
 	}
@@ -103,6 +96,7 @@ export class AuthController {
 	async getProfile(@Req() req: Request) {
 		const user = req.user as { id: string; email: string }
 		const data = await this.auth.getProfile(user.id)
+
 		return { success: true, message: 'OK', data }
 	}
 

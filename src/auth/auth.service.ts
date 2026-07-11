@@ -6,15 +6,16 @@ import {
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt'
 
+import { MailService } from '../mail/mail.service'
 import { PrismaService } from '../prisma/prisma.service'
 import { UsersService } from '../users/users.service'
-import { MailService } from '../mail/mail.service'
 
+import { STARTER_DECKS } from './starter-decks'
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
+import { ResetPasswordDto } from './dto/reset-password.dto'
 import { UpdatePasswordDto } from './dto/update.password.dto'
 import { UpdateUsernameDto } from './dto/update.username.dto'
-import { ResetPasswordDto } from './dto/reset-password.dto'
 
 @Injectable()
 export class AuthService {
@@ -51,10 +52,10 @@ export class AuthService {
 			username: dto.username,
 			passwordHash,
 			newsletter: dto.mailing_enabled ?? false,
-			emailVerified: false
+			emailVerified: true
 		})
 
-		await this.sendVerificationEmail(user.id, user.email)
+		await this.seedStarterDecks(user.id)
 
 		return { job_id: crypto.randomUUID() }
 	}
@@ -65,7 +66,9 @@ export class AuthService {
 		})
 
 		if (!record || record.expiresAt < new Date()) {
-			throw new BadRequestException('Invalid or expired verification token')
+			throw new BadRequestException(
+				'Invalid or expired verification token'
+			)
 		}
 
 		await this.prisma.user.update({
@@ -84,7 +87,9 @@ export class AuthService {
 	}
 
 	private async sendVerificationEmail(userId: string, email: string) {
-		await this.prisma.emailVerificationToken.deleteMany({ where: { userId } })
+		await this.prisma.emailVerificationToken.deleteMany({
+			where: { userId }
+		})
 
 		const token = crypto.randomUUID()
 		await this.prisma.emailVerificationToken.create({
@@ -167,11 +172,28 @@ export class AuthService {
 				newsletter: false
 			}
 		})
+		await this.seedStarterDecks(user.id)
 		return this.loginUser({
 			id: user.id,
 			email: user.email,
 			emailVerified: user.emailVerified
 		})
+	}
+
+	// Подсеваем готовые колоды новому пользователю (демо и регистрация),
+	// чтобы «ready-made decks» с лендинга были реальными.
+	private async seedStarterDecks(userId: string) {
+		await Promise.all(
+			STARTER_DECKS.map(deck =>
+				this.prisma.deck.create({
+					data: {
+						title: deck.title,
+						userId,
+						cards: { create: deck.cards }
+					}
+				})
+			)
+		)
 	}
 
 	async refresh(refreshToken: string) {
@@ -216,7 +238,8 @@ export class AuthService {
 			email: user.email,
 			username: user.username,
 			avatarUrl: user.avatarUrl ?? null,
-			createdAt: user.createdAt
+			createdAt: user.createdAt,
+			hasPassword: !!user.passwordHash
 		}
 	}
 
@@ -252,7 +275,9 @@ export class AuthService {
 					data: {
 						googleId: data.googleId,
 						email: data.email,
-						username: await this.resolveUniqueUsername(data.username),
+						username: await this.resolveUniqueUsername(
+							data.username
+						),
 						emailVerified: true,
 						newsletter: false
 					}
@@ -270,7 +295,13 @@ export class AuthService {
 		avatarUrl: string | null
 	}): string {
 		return this.jwt.sign(
-			{ googleId: data.googleId, email: data.email, username: data.username, avatarUrl: data.avatarUrl, type: 'pending_link' },
+			{
+				googleId: data.googleId,
+				email: data.email,
+				username: data.username,
+				avatarUrl: data.avatarUrl,
+				type: 'pending_link'
+			},
 			{ expiresIn: '5m' }
 		)
 	}
@@ -338,7 +369,9 @@ export class AuthService {
 		// ein gestohlener Access-Token das Passwort setzen = dauerhafte Übernahme.
 		const user = await this.users.findById(userId)
 		if (!user || !user.passwordHash) {
-			throw new BadRequestException('Für dieses Konto ist kein Passwort gesetzt')
+			throw new BadRequestException(
+				'Für dieses Konto ist kein Passwort gesetzt'
+			)
 		}
 		const match = await bcrypt.compare(dto.old_password, user.passwordHash)
 		if (!match) {
@@ -356,7 +389,9 @@ export class AuthService {
 		const user = await this.users.findByEmail(email)
 		if (!user) return // не раскрываем существование аккаунта
 
-		await this.prisma.passwordResetToken.deleteMany({ where: { userId: user.id } })
+		await this.prisma.passwordResetToken.deleteMany({
+			where: { userId: user.id }
+		})
 
 		const token = crypto.randomUUID()
 		await this.prisma.passwordResetToken.create({
@@ -394,7 +429,9 @@ export class AuthService {
 			data: { passwordHash }
 		})
 
-		await this.prisma.passwordResetToken.delete({ where: { token: dto.token } })
+		await this.prisma.passwordResetToken.delete({
+			where: { token: dto.token }
+		})
 	}
 
 	private async resolveUniqueUsername(base: string): Promise<string> {

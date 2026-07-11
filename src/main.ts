@@ -9,7 +9,9 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule)
 
 	app.setGlobalPrefix('api/v1')
-	app.useGlobalPipes(new ValidationPipe({ whitelist: true }))
+	// transform: true — превращает входные данные в экземпляры DTO и применяет
+	// @Type-конверсии (напр. ?page=2 строка → число) и дефолты. Нужно для QueryDecksDto.
+	app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }))
 	app.use(cookieParser())
 	// разрешённые origin'ы задаём через env (через запятую), fallback — локальный дев
 	const corsOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:3000')
